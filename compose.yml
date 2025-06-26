@@ -1,4 +1,48 @@
 services:
+  oem-setup:
+    image: alpine/curl
+    volumes:
+      - ./oem:/oem
+    command:
+      - /bin/sh
+      - -c
+      - |
+          echo 'Setting up OEM files...'
+          apk add --no-cache unzip
+          # Download NVDA if not exists
+          if [ ! -f /oem/nvda.exe ]; then
+            echo 'Downloading NVDA...'
+            curl -o /oem/nvda.exe 'https://download.nvaccess.org/releases/2017.3/nvda_2017.3.exe?donation=0'
+          fi
+          
+          # Download and process NVDA Remote addon if not exists
+          if [ ! -d /oem/remote ]; then
+            echo 'Downloading NVDA Remote addon...'
+            curl -o /oem/remote-2.2.nvda-addon 'https://nvdaremote.com/remote-2.2.nvda-addon'
+            echo 'Processing addon...'
+            cd /oem
+            unzip -o remote-2.2.nvda-addon -d remote/
+            cd remote
+            rm -rf doc locale
+            cd ..
+            rm remote-2.2.nvda-addon
+          fi
+          
+          # Create install script if not exists
+          if [ ! -f /oem/install.bat ]; then
+            cat > /oem/install.bat << 'EOF'
+          @echo off
+          echo Installing NVDA...
+          nvda.exe --install-silent
+          echo Installing NVDA Remote addon...
+          nvda.exe --install-addon remote-2.2.nvda-addon
+          echo Installation complete
+          EOF
+          fi
+          
+          echo 'OEM setup complete'
+      
+    restart: "no"
   windows:
     image: dockurr/windows
     container_name: windows
@@ -15,7 +59,8 @@ services:
       - 3389:3389/udp
     volumes:
       - ./windows:/storage
+      - ./oem:/oem
     restart: always
     stop_grace_period: 2m
-volumes:
-  - ./oem:/oem
+    depends_on:
+      - oem-setup
