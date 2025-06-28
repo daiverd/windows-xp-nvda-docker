@@ -23,4 +23,4 @@ clean:
 	-rm -rf oem
 
 oem-setup:
-	REMOTE_KEY=$(REMOTE_KEY) docker compose --profile setup run --rm oem-setup
+	REMOTE_KEY=$(REMOTE_KEY) VERSION=$(VERSION) docker compose --profile setup run --rm oem-setup
