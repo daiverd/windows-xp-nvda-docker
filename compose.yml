@@ -17,7 +17,7 @@ services:
     image: dockurr/windows
     container_name: windows
     environment:
-      VERSION: "xp"
+      - VERSION=${VERSION}
     devices:
       - /dev/kvm
       - /dev/net/tun
@@ -30,5 +30,6 @@ services:
     volumes:
       - ./windows:/storage
       - ./oem:/oem
+      - ./data:/data
     restart: always
     stop_grace_period: 2m
