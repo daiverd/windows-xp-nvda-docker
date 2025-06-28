@@ -4,68 +4,13 @@ services:
     image: alpine/curl
     volumes:
       - ./oem:/oem
+      - ./templates:/templates:ro
     environment:
       - REMOTE_KEY=${REMOTE_KEY}
+      - VERSION=${VERSION}
     command:
       - /bin/sh
-      - -c
-      - |
-          echo 'Setting up OEM files...'
-          apk add --no-cache unzip dos2unix > /dev/null 2>&1
-          # Download NVDA if not exists
-          if [ ! -f /oem/nvda.exe ]; then
-            echo 'Downloading NVDA...'
-            curl -s -o /oem/nvda.exe 'https://download.nvaccess.org/releases/2017.3/nvda_2017.3.exe?donation=0'
-          fi
-          
-          # Download and process NVDA Remote addon if not exists
-          if [ ! -d /oem/remote ]; then
-            echo 'Downloading NVDA Remote addon...'
-            curl -s -o /oem/remote-2.2.nvda-addon 'https://nvdaremote.com/remote-2.2.nvda-addon'
-            echo 'Processing addon...'
-            cd /oem
-            unzip -q -o remote-2.2.nvda-addon -d remote/
-            cd remote
-            rm -rf doc locale
-            cd ..
-            rm remote-2.2.nvda-addon
-          fi
-          
-          # Create install script if not exists
-          if [ ! -f /oem/install.bat ]; then
-            echo writing install.bat...
-            cat > /oem/install.bat << 'EOF'
-          @echo off
-          if not exist "%APPDATA%\nvda\addons\remote\" mkdir "%APPDATA%\nvda\addons\remote"
-          xcopy "c:\oem\remote\*" "%APPDATA%\nvda\addons\remote\" /E /I /H /Y                                                          
-          copy "c:\oem\remote.ini" "%APPDATA%\nvda\"
-          c:\oem\nvda.exe --install                                                                                          
-          echo "C:\Program Files\NVDA\nvda.exe" >> "%USERPROFILE%\Start Menu\Programs\Startup\StartNVDA.bat"                      
-          EOF
-          fi
-          unix2dos /oem/install.bat
-          
-          if [ ! -f /oem/remote.ini ]; then
-          # Check if REMOTE_KEY is set and not empty
-          if [ -z "$REMOTE_KEY" ] || [ "$REMOTE_KEY" = "default_remote_key" ]; then
-            echo "ERROR: REMOTE_KEY is not set or using default value"
-            echo "Please set REMOTE_KEY environment variable with your desired key"
-            echo "Example: REMOTE_KEY=mykey123 docker compose up oem-setup"
-            exit 1
-          fi
-            echo writing remote.ini...
-            cat > /oem/remote.ini << EOF
-          [controlserver]
-          autoconnect = True
-          self_hosted = False
-          connection_type = 0
-          host = NVDAREMOTE.COM
-          port = 23
-          key = $REMOTE_KEY
-          EOF
-          fi
-          unix2dos /oem/remote.ini
-          echo 'OEM setup complete'
+      - /templates/oem-setup.sh
     restart: "no"
   
   windows:
